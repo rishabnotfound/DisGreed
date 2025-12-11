@@ -1,6 +1,6 @@
 <p align="center">
       <img
-        src="./assets/nobg.png"
+        src="./assets/logo.png"
         width="200"
         height="200"
       />
