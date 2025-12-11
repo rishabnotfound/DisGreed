@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DisGreed - Discord Webhook Manager</title>
+    <link rel="icon" href="./logo.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        body {
+            background: #000000;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+        .morphism-nav {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 100px;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .input-field {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .card {
+            transition: all 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+        .toolbar-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .color-picker-popup {
+            background: rgba(10, 10, 10, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        [contenteditable="true"]:empty:before {
+            content: attr(data-placeholder);
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white">
+
+    <!-- Morphism Capsule Navbar -->
+    <nav class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl">
+        <div class="morphism-nav px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <img src="logo.png" alt="DiscoSync" class="w-10 h-10 rounded-full" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2220%22 fill=%22%23333%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23fff%22 font-size=%2218%22 font-family=%22Arial%22%3EDS%3C/text%3E%3C/svg%3E'">
+                <span class="text-sm text-gray-400">Hooks: <span id="navWebhookCount" class="text-white font-medium">0</span></span>
+                <span class="text-sm text-gray-400">Using: <span id="navActiveWebhook" class="text-white font-medium">None</span></span>
+            </div>
+            <button onclick="openAddWebhookModal()" class="btn-primary px-4 py-2 rounded-full text-sm font-medium flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 pt-28 pb-8 max-w-[1600px]">
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+            <!-- Webhooks List -->
+            <div class="xl:col-span-3">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold">Webhooks</h2>
+                    <div class="relative w-64">
+                        <input type="text" id="searchWebhooks" placeholder="Search webhooks..." class="w-full input-field rounded-lg pl-10 pr-4 py-2 text-sm">
+                        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div id="webhooksContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+                <div id="emptyState" class="text-center py-16 hidden">
+                    <div class="w-20 h-20 mx-auto mb-4 rounded-full glass flex items-center justify-center">
+                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium mb-2 text-gray-400">No webhooks yet</h3>
+                    <p class="text-sm text-gray-500 mb-6">Add your first Discord webhook to get started</p>
+                    <button onclick="openAddWebhookModal()" class="btn-primary px-6 py-3 rounded-lg font-medium">Add Webhook</button>
+                </div>
+            </div>
+
+            <!-- Message Panel -->
+            <div class="xl:col-span-1">
+                <div class="glass rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Send Message</h3>
+                    <div id="noWebhookSelected" class="text-center py-8 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        <p class="text-sm">Select a webhook</p>
+                    </div>
+                    <div id="messageForm" class="hidden">
+                        <div id="selectedWebhookInfo" class="mb-4 p-3 rounded-lg glass">
+                            <div class="flex items-center space-x-3">
+                                <img id="selectedAvatar" src="" alt="" class="w-10 h-10 rounded-full">
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium truncate text-sm" id="selectedNickname"></p>
+                                    <p class="text-xs text-gray-500 truncate" id="selectedUsername"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2 text-gray-400">Message</label>
+                            <textarea id="messageContent" placeholder="Type your message here" class="w-full input-field rounded-lg px-4 py-3 text-white min-h-[200px] resize-none text-sm"></textarea>
+                            <div class="flex justify-between items-center mt-2">
+                                <p class="text-xs text-gray-600"><span id="charCount">0</span>/2000</p>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2 text-gray-400">Preview</label>
+                            <div class="glass rounded-lg p-4 min-h-[100px]">
+                                <div class="flex items-start space-x-3">
+                                    <img id="previewAvatar" src="" alt="" class="w-8 h-8 rounded-full">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <span class="font-medium text-sm" id="previewUsername"></span>
+                                            <span class="text-xs text-gray-600">Bot</span>
+                                            <span class="text-xs text-gray-700"><span id="previewTime"></span></span>
+                                        </div>
+                                        <div id="previewContent" class="text-sm text-gray-300 break-words">Your message...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="sendMessage()" id="sendButton" class="w-full btn-primary py-3 rounded-lg font-medium flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            </svg>
+                            <span>Send</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 py-6 mt-8">
+        <div class="container mx-auto px-6 max-w-[1600px]">
+            <div class="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                <span>Made with</span>
+                <svg class="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                </svg>
+                <span>by R</span>
+                <span class="text-gray-700">•</span>
+                <a href="https://github.com/rishabnotfound" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-1 hover:text-white transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>GitHub</span>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal -->
+    <div id="webhookModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="modal-backdrop absolute inset-0" onclick="closeWebhookModal()"></div>
+        <div class="glass rounded-2xl p-8 max-w-md w-full relative z-10">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold" id="modalTitle">Add Webhook</h3>
+                <button onclick="closeWebhookModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form onsubmit="saveWebhook(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2 text-gray-400">Webhook URL</label>
+                    <input type="url" id="webhookUrl" required placeholder="https://discord.com/api/webhooks/..." class="w-full input-field rounded-lg px-4 py-3 text-white">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2 text-gray-400">Nickname</label>
+                    <input type="text" id="webhookNickname" placeholder="Production Server" class="w-full input-field rounded-lg px-4 py-3 text-white">
+                </div>
+                <div id="webhookPreview" class="hidden mb-4 p-4 rounded-lg glass">
+                    <div class="flex items-center space-x-3">
+                        <img id="previewWebhookAvatar" src="" alt="" class="w-12 h-12 rounded-full">
+                        <div>
+                            <p class="font-medium" id="previewWebhookUsername"></p>
+                            <p class="text-sm text-gray-500" id="previewWebhookChannel"></p>
+                        </div>
+                    </div>
+                </div>
+                <div id="webhookError" class="hidden mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p class="text-sm text-red-400" id="webhookErrorMessage"></p>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="button" onclick="closeWebhookModal()" class="flex-1 btn-primary py-3 rounded-lg font-medium">Cancel</button>
+                    <button type="submit" id="saveWebhookButton" class="flex-1 btn-primary py-3 rounded-lg font-medium">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notificationsContainer" class="fixed top-4 right-4 z-50 space-y-3 max-w-sm"></div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="modal-backdrop absolute inset-0" onclick="closeDeleteModal()"></div>
+        <div class="glass rounded-2xl p-8 max-w-sm w-full relative z-10">
+            <div class="text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Delete Webhook?</h3>
+                <p class="text-sm text-gray-400 mb-6">This action cannot be undone. The webhook will be permanently removed.</p>
+                <div class="flex space-x-3">
+                    <button onclick="closeDeleteModal()" class="flex-1 btn-primary py-3 rounded-lg font-medium">Cancel</button>
+                    <button onclick="confirmDelete()" class="flex-1 bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 py-3 rounded-lg font-medium text-red-400">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let webhooks = [];
+        let activeWebhookId = null;
+        let editingWebhookId = null;
+        let emojiPicker = null;
+        let deleteWebhookId = null;
+
+        function init() {
+            loadFromLocalStorage();
+            renderWebhooks();
+            updateNav();
+            setupMessageInput();
+            updatePreviewTime();
+            setInterval(updatePreviewTime, 1000);
+            initEmojiPicker();
+            setupSearch();
+            restoreActiveWebhook();
+        }
+
+        function restoreActiveWebhook() {
+            if (activeWebhookId) {
+                const webhook = webhooks.find(w => w.id === activeWebhookId);
+                if (webhook) {
+                    document.getElementById('noWebhookSelected').classList.add('hidden');
+                    document.getElementById('messageForm').classList.remove('hidden');
+                    document.getElementById('selectedAvatar').src = webhook.avatar;
+                    document.getElementById('selectedNickname').textContent = webhook.nickname || webhook.username;
+                    document.getElementById('selectedUsername').textContent = webhook.username;
+                    document.getElementById('previewAvatar').src = webhook.avatar;
+                    document.getElementById('previewUsername').textContent = webhook.username;
+                }
+            }
+        }
+
+        function setupSearch() {
+            const search = document.getElementById('searchWebhooks');
+            search.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const cards = document.querySelectorAll('#webhooksContainer > div');
+                cards.forEach(card => {
+                    const id = card.dataset.webhookId;
+                    const webhook = webhooks.find(w => w.id === id);
+                    if (webhook) {
+                        const matches = (webhook.nickname || '').toLowerCase().includes(query) ||
+                                       webhook.username.toLowerCase().includes(query) ||
+                                       (webhook.channelId || '').toLowerCase().includes(query);
+                        card.style.display = matches ? '' : 'none';
+                    }
+                });
+            });
+        }
+
+        function initEmojiPicker() {
+            // Not needed anymore
+        }
+
+        function loadFromLocalStorage() {
+            const stored = localStorage.getItem('discoSyncWebhooks');
+            if (stored) webhooks = JSON.parse(stored);
+            const storedActive = localStorage.getItem('discoSyncActiveWebhook');
+            if (storedActive) activeWebhookId = storedActive;
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('discoSyncWebhooks', JSON.stringify(webhooks));
+            localStorage.setItem('discoSyncActiveWebhook', activeWebhookId || '');
+        }
+
+        async function fetchWebhookMetadata(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Invalid webhook URL');
+            const data = await response.json();
+            return {
+                username: data.name || 'Unknown',
+                avatar: data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png',
+                channelId: data.channel_id || null
+            };
+        }
+
+        function openAddWebhookModal() {
+            editingWebhookId = null;
+            document.getElementById('modalTitle').textContent = 'Add Webhook';
+            document.getElementById('webhookUrl').value = '';
+            document.getElementById('webhookNickname').value = '';
+            document.getElementById('webhookPreview').classList.add('hidden');
+            document.getElementById('webhookError').classList.add('hidden');
+            document.getElementById('webhookModal').classList.remove('hidden');
+            document.getElementById('webhookModal').classList.add('flex');
+        }
+
+        function openEditWebhookModal(webhookId) {
+            const webhook = webhooks.find(w => w.id === webhookId);
+            if (!webhook) return;
+            editingWebhookId = webhookId;
+            document.getElementById('modalTitle').textContent = 'Edit Webhook';
+            document.getElementById('webhookUrl').value = webhook.url;
+            document.getElementById('webhookNickname').value = webhook.nickname || '';
+            document.getElementById('previewWebhookAvatar').src = webhook.avatar;
+            document.getElementById('previewWebhookUsername').textContent = webhook.username;
+            document.getElementById('previewWebhookChannel').textContent = webhook.channelId ? `Channel: ${webhook.channelId}` : 'Channel unavailable';
+            document.getElementById('webhookPreview').classList.remove('hidden');
+            document.getElementById('webhookModal').classList.remove('hidden');
+            document.getElementById('webhookModal').classList.add('flex');
+        }
+
+        function closeWebhookModal() {
+            document.getElementById('webhookModal').classList.add('hidden');
+            document.getElementById('webhookModal').classList.remove('flex');
+        }
+
+        async function saveWebhook(event) {
+            event.preventDefault();
+            const url = document.getElementById('webhookUrl').value.trim();
+            const nickname = document.getElementById('webhookNickname').value.trim();
+            const btn = document.getElementById('saveWebhookButton');
+            btn.innerHTML = '<div class="spinner mx-auto"></div>';
+            btn.disabled = true;
+            try {
+                const metadata = await fetchWebhookMetadata(url);
+                const webhookData = {
+                    id: editingWebhookId || Date.now().toString(36) + Math.random().toString(36).substr(2),
+                    url, nickname,
+                    username: metadata.username,
+                    avatar: metadata.avatar,
+                    channelId: metadata.channelId,
+                    createdAt: editingWebhookId ? webhooks.find(w => w.id === editingWebhookId).createdAt : Date.now()
+                };
+                if (editingWebhookId) {
+                    const idx = webhooks.findIndex(w => w.id === editingWebhookId);
+                    webhooks[idx] = webhookData;
+                    showNotification('Webhook updated', 'success');
+                } else {
+                    webhooks.push(webhookData);
+                    showNotification('Webhook added', 'success');
+                }
+                saveToLocalStorage();
+                renderWebhooks();
+                updateNav();
+                closeWebhookModal();
+            } catch (error) {
+                document.getElementById('webhookErrorMessage').textContent = error.message;
+                document.getElementById('webhookError').classList.remove('hidden');
+            } finally {
+                btn.innerHTML = 'Save';
+                btn.disabled = false;
+            }
+        }
+
+        function deleteWebhook(webhookId) {
+            deleteWebhookId = webhookId;
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteModal').classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            deleteWebhookId = null;
+            document.getElementById('deleteModal').classList.add('hidden');
+            document.getElementById('deleteModal').classList.remove('flex');
+        }
+
+        function confirmDelete() {
+            if (!deleteWebhookId) return;
+            webhooks = webhooks.filter(w => w.id !== deleteWebhookId);
+            if (activeWebhookId === deleteWebhookId) {
+                activeWebhookId = null;
+                document.getElementById('messageForm').classList.add('hidden');
+                document.getElementById('noWebhookSelected').classList.remove('hidden');
+            }
+            saveToLocalStorage();
+            renderWebhooks();
+            updateNav();
+            showNotification('Webhook deleted', 'info');
+            closeDeleteModal();
+        }
+
+        function copyToClipboard(text, label) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(`${label} copied`, 'success');
+            }).catch(() => {
+                showNotification('Failed to copy', 'error');
+            });
+        }
+
+        function selectWebhook(webhookId) {
+            const webhook = webhooks.find(w => w.id === webhookId);
+            if (!webhook) return;
+            activeWebhookId = webhookId;
+            document.getElementById('noWebhookSelected').classList.add('hidden');
+            document.getElementById('messageForm').classList.remove('hidden');
+            document.getElementById('selectedAvatar').src = webhook.avatar;
+            document.getElementById('selectedNickname').textContent = webhook.nickname || webhook.username;
+            document.getElementById('selectedUsername').textContent = webhook.username;
+            document.getElementById('previewAvatar').src = webhook.avatar;
+            document.getElementById('previewUsername').textContent = webhook.username;
+            saveToLocalStorage();
+            renderWebhooks();
+            updateNav();
+        }
+
+        function setupMessageInput() {
+            const mc = document.getElementById('messageContent');
+            mc.addEventListener('input', updatePreview);
+        }
+
+        function updatePreview() {
+            const mc = document.getElementById('messageContent');
+            const text = mc.value;
+            document.getElementById('charCount').textContent = text.length;
+            const preview = document.getElementById('previewContent');
+            if (text.trim()) {
+                // Convert newlines to <br> tags and escape HTML
+                const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                preview.innerHTML = escaped.replace(/\n/g, '<br>');
+            } else {
+                preview.textContent = 'Your message...';
+            }
+        }
+
+        function updatePreviewTime() {
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const el = document.getElementById('previewTime');
+            if (el) el.textContent = time;
+        }
+
+        async function sendMessage() {
+            if (!activeWebhookId) {
+                showNotification('Select a webhook first', 'error');
+                return;
+            }
+            const mc = document.getElementById('messageContent');
+            const content = mc.value.trim();
+            if (!content) {
+                showNotification('Enter a message', 'error');
+                return;
+            }
+            if (content.length > 2000) {
+                showNotification('Message too long', 'error');
+                return;
+            }
+            const webhook = webhooks.find(w => w.id === activeWebhookId);
+            if (!webhook) return;
+            const btn = document.getElementById('sendButton');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<div class="spinner mx-auto"></div>';
+            btn.disabled = true;
+            try {
+                const res = await fetch(webhook.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                if (!res.ok) throw new Error('Failed');
+                mc.value = '';
+                document.getElementById('charCount').textContent = '0';
+                document.getElementById('previewContent').textContent = 'Your message...';
+                showNotification('Message sent', 'success');
+            } catch (error) {
+                showNotification('Failed to send', 'error');
+            } finally {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+        }
+
+        function renderWebhooks() {
+            const container = document.getElementById('webhooksContainer');
+            const empty = document.getElementById('emptyState');
+            if (webhooks.length === 0) {
+                container.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            container.innerHTML = webhooks.map(w => {
+                const active = w.id === activeWebhookId;
+                const parts = w.url.split('/');
+                const token = parts[parts.length - 1];
+                const masked = parts.slice(0, -1).join('/') + '/' + token.substr(0, 8) + '***' + token.substr(-8);
+                return `
+                    <div class="glass rounded-xl p-5 card ${active ? 'border-white/10' : ''}" data-webhook-id="${w.id}">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center space-x-3 flex-1 min-w-0">
+                                <img src="${w.avatar}" alt="${w.username}" class="w-12 h-12 rounded-full">
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="font-semibold truncate">${w.nickname || w.username}</h4>
+                                    <p class="text-sm text-gray-500 truncate">${w.username}</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-1">
+                                <button onclick="openEditWebhookModal('${w.id}')" class="p-2 rounded-lg hover:bg-white/5" title="Edit">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </button>
+                                <button onclick="deleteWebhook('${w.id}')" class="p-2 rounded-lg hover:bg-red-500/10 text-red-400" title="Delete">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-xs text-gray-600">URL</p>
+                                <button onclick="copyToClipboard('${w.url.replace(/'/g, "\\'")}', 'URL')" class="text-xs text-gray-500 hover:text-white transition" title="Copy URL">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <code class="text-xs bg-black/30 px-3 py-2 rounded block truncate">${masked}</code>
+                        </div>
+                        ${w.channelId ? `
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-xs text-gray-600">Channel ID</p>
+                                <button onclick="copyToClipboard('${w.channelId}', 'Channel ID')" class="text-xs text-gray-500 hover:text-white transition" title="Copy Channel ID">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <code class="text-xs bg-black/30 px-3 py-2 rounded block truncate">${w.channelId}</code>
+                        </div>` : ''}
+                        <button onclick="selectWebhook('${w.id}')" class="w-full btn-primary py-2 rounded-lg font-medium ${active ? 'bg-white/10' : ''} flex items-center justify-center space-x-2">
+                            <span>${active ? 'Active' : 'Use'}</span>
+                            ${active ? '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 512 459.53"><path fill="#fff" fill-rule="nonzero" d="M9.38 212.26l91.05-1.2c1.9-.01 3.69.53 5.19 1.49 32.96 19.01 62.2 42.95 87.35 71.5 33.32-54.09 68.94-103.63 106.55-149.04C339.7 86.5 382.32 42.5 426.98 2.46a9.464 9.464 0 016.33-2.41L502.67 0c8.53 0 12.23 9.31 6.73 16.26-61.47 68.29-117.32 139.05-167.78 212a2075.014 2075.014 0 00-135.99 226.12c-2.4 4.65-8.14 6.49-12.79 4.09a9.476 9.476 0 01-4.35-4.63C146.26 363.35 86.92 286.45 4.14 229.6c-7.67-5.25-3.96-17.2 5.24-17.34z"/></svg>' : ''}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateNav() {
+            document.getElementById('navWebhookCount').textContent = webhooks.length;
+            const active = webhooks.find(w => w.id === activeWebhookId);
+            document.getElementById('navActiveWebhook').textContent = active ? (active.nickname || active.username) : 'None';
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationsContainer');
+            const id = Date.now().toString(36);
+            const colors = {
+                success: 'bg-green-500/10 border-green-500/20 text-green-300',
+                error: 'bg-red-500/10 border-red-500/20 text-red-300',
+                info: 'bg-blue-500/10 border-blue-500/20 text-blue-300'
+            };
+            const n = document.createElement('div');
+            n.id = id;
+            n.className = `glass ${colors[type]} rounded-lg p-4 border flex items-center justify-between`;
+            n.innerHTML = `<p class="text-sm">${message}</p><button onclick="document.getElementById('${id}').remove()" class="text-gray-400 hover:text-white ml-4"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>`;
+            container.appendChild(n);
+            setTimeout(() => n.remove(), 5000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
