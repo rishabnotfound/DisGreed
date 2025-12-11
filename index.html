@@ -78,7 +78,11 @@
             z-index: 0;
         }
 
-        #webhooksContainer:hover > .card::before {
+        #mainContent:hover .card::before {
+            opacity: 1;
+        }
+
+        #mainContent:hover .message-panel::before {
             opacity: 1;
         }
 
@@ -136,9 +140,6 @@
             z-index: 0;
         }
 
-        .message-panel:hover::before {
-            opacity: 1;
-        }
 
         .message-panel::after {
             content: "";
@@ -202,6 +203,15 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Discord Bot Tag Styles */
+        .botTag__82f07{align-items:center;display:inline-flex;flex-shrink:0;font-size:.625rem;text-indent:0;text-transform:uppercase;vertical-align:top}.px__82f07.botTag__82f07{border-radius:4px;height:16px;padding:0 4px}.rem__82f07.botTag__82f07{border-radius:4px;height:.9375rem;margin-top:.2em;padding:0 .275rem}.rem__82f07.botTag__82f07.botTagOP__82f07{margin-top:.25em}.botTagRegular__82f07{background:var(--background-brand);color:var(--white)}.botTagInvert__82f07{background:var(--white-500);color:var(--brand-500)}.botTagAI__82f07{background:var(--text-feedback-positive);color:var(--white)}.botTagNotStaffWarning__82f07{background:var(--notice-background-warning);color:var(--notice-text-warning)}.botTagVerified__82f07{display:inline-block}.px__82f07 .botTagVerified__82f07{height:16px;width:16px;-webkit-margin-start:-2px;margin-inline-start:-2px}.rem__82f07 .botTagVerified__82f07{height:1rem;width:1rem;-webkit-margin-start:-.2rem;margin-inline-start:-.2rem;margin-top:-.02rem}.botText__82f07{font-weight:var(--font-weight-semibold);position:relative;vertical-align:top}.px__82f07 .botText__82f07{font-size:12px;line-height:16px}.rem__82f07 .botText__82f07{font-size:.8rem;line-height:.9375rem}.botTagOP__82f07{background-color:var(--brand-260);border-radius:8px;color:var(--brand-560)}
+
+        :root {
+            --background-brand: #5865F2;
+            --white: #FFFFFF;
+            --font-weight-semibold: 600;
+        }
     </style>
 </head>
 <body class="min-h-screen text-white">
@@ -223,7 +233,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-6 pt-28 pb-8 max-w-[1600px]">
+    <main class="container mx-auto px-6 pt-28 pb-8 max-w-[1600px]" id="mainContent">
         <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
 
             <!-- Webhooks List -->
@@ -286,7 +296,7 @@
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center space-x-2 mb-1">
                                             <span class="font-medium text-sm" id="previewUsername"></span>
-                                            <span class="text-xs text-gray-600">Bot</span>
+                                            <span class="botTagCozy_c19a55 botTag_c19a55 botTagRegular__82f07 botTag__82f07 rem__82f07"><span class="botText__82f07">APP</span></span>
                                             <span class="text-xs text-gray-700"><span id="previewTime"></span></span>
                                         </div>
                                         <div id="previewContent" class="text-sm text-gray-300 break-words">Your message...</div>
@@ -445,7 +455,8 @@
         }
 
         function setupCardHoverEffect() {
-            document.getElementById("webhooksContainer").onmousemove = e => {
+            document.getElementById("mainContent").onmousemove = e => {
+                // Update all webhook cards
                 for(const card of document.getElementsByClassName("card")) {
                     const rect = card.getBoundingClientRect(),
                         x = e.clientX - rect.left,
@@ -453,18 +464,17 @@
                     card.style.setProperty("--mouse-x", `${x}px`);
                     card.style.setProperty("--mouse-y", `${y}px`);
                 }
-            };
 
-            const messagePanel = document.getElementById("messagePanelWrapper");
-            if (messagePanel) {
-                messagePanel.onmousemove = e => {
+                // Update message panel
+                const messagePanel = document.getElementById("messagePanelWrapper");
+                if (messagePanel) {
                     const rect = messagePanel.getBoundingClientRect(),
                         x = e.clientX - rect.left,
                         y = e.clientY - rect.top;
                     messagePanel.style.setProperty("--mouse-x", `${x}px`);
                     messagePanel.style.setProperty("--mouse-y", `${y}px`);
-                };
-            }
+                }
+            };
         }
 
         function initEmojiPicker() {
