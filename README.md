@@ -16,7 +16,7 @@ DisGreed — A modern Discord Webhook Manager. Add, manage, and nickname webhook
 ## Preview
 
 <p align="center">
-    <img src="./assets/preview.png" width="900" height="300" />
+    <img src="./assets/preview.png" width="900" height="400" />
 </p>
 
 ## License
@@ -26,5 +26,3 @@ DisGreed — A modern Discord Webhook Manager. Add, manage, and nickname webhook
 ## Credits
 
 Built by [rishabnotfound](https://github.com/rishabnotfound)
-
-Based on [sudo-flix](https://github.com/sussy-code/smov)
