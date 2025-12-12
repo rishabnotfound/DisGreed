@@ -11,7 +11,7 @@
 DisGreed — A modern Discord Webhook Manager. Add, manage, and nickname webhooks, view usernames, profile pictures, and channels, and send messages instantly. Data is stored locally for a fast, seamless experience.
 
 
-*SIMPLE HTML THING, I HATE TO SAY I MADE IT IN HTML*
+*SIMPLE HTML THING*
 
 ## Preview
 
