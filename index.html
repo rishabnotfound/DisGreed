@@ -401,12 +401,18 @@
         </div>
     </div>
 
+    <!-- Hidden Proxy Iframe -->
+    <iframe id="proxyFrame" src="proxy.html" style="display: none;"></iframe>
+
     <script>
         let webhooks = [];
         let activeWebhookId = null;
         let editingWebhookId = null;
         let emojiPicker = null;
         let deleteWebhookId = null;
+        let proxyReady = false;
+        let proxyRequestId = 0;
+        let proxyCallbacks = {};
 
         function init() {
             loadFromLocalStorage();
@@ -419,6 +425,66 @@
             setupSearch();
             setupCardHoverEffect();
             restoreActiveWebhook();
+            setupProxy();
+        }
+
+        function setupProxy() {
+            window.addEventListener('message', (event) => {
+                const { type, requestId, success, status, data, error } = event.data;
+
+                if (type === 'PROXY_READY') {
+                    proxyReady = true;
+                    console.log('Proxy is ready');
+                } else if (type === 'WEBHOOK_RESPONSE') {
+                    const callback = proxyCallbacks[requestId];
+                    if (callback) {
+                        callback({ success, status, data, error });
+                        delete proxyCallbacks[requestId];
+                    }
+                }
+            });
+        }
+
+        function proxyFetch(url, options = {}) {
+            return new Promise((resolve, reject) => {
+                if (!proxyReady) {
+                    // Fallback to direct fetch if proxy not ready
+                    return fetch(url, options).then(resolve).catch(reject);
+                }
+
+                const requestId = ++proxyRequestId;
+                proxyCallbacks[requestId] = (response) => {
+                    if (response.success) {
+                        resolve({
+                            ok: response.success,
+                            status: response.status,
+                            json: () => Promise.resolve(response.data)
+                        });
+                    } else {
+                        reject(new Error(response.error || 'Request failed'));
+                    }
+                };
+
+                const proxyFrame = document.getElementById('proxyFrame');
+                proxyFrame.contentWindow.postMessage({
+                    type: 'WEBHOOK_REQUEST',
+                    requestId: requestId,
+                    data: {
+                        url: url,
+                        method: options.method || 'GET',
+                        headers: options.headers || {},
+                        body: options.body ? JSON.parse(options.body) : undefined
+                    }
+                }, '*');
+
+                // Timeout after 30 seconds
+                setTimeout(() => {
+                    if (proxyCallbacks[requestId]) {
+                        delete proxyCallbacks[requestId];
+                        reject(new Error('Request timeout'));
+                    }
+                }, 30000);
+            });
         }
 
         function restoreActiveWebhook() {
@@ -494,7 +560,7 @@
         }
 
         async function fetchWebhookMetadata(url) {
-            const response = await fetch(url);
+            const response = await proxyFetch(url);
             if (!response.ok) throw new Error('Invalid webhook URL');
             const data = await response.json();
             return {
@@ -671,7 +737,7 @@
             btn.innerHTML = '<div class="spinner mx-auto"></div>';
             btn.disabled = true;
             try {
-                const res = await fetch(webhook.url, {
+                const res = await proxyFetch(webhook.url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content })

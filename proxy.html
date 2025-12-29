@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DisGreed Proxy</title>
+</head>
+<body>
+    <script>
+        window.addEventListener('message', async (event) => {
+            const { type, data, requestId } = event.data;
+            if (type === 'WEBHOOK_REQUEST') {
+                try {
+                    const response = await fetch(data.url, {
+                        method: data.method || 'GET',
+                        headers: data.headers || {},
+                        body: data.body ? JSON.stringify(data.body) : undefined
+                    });
+
+                    const responseData = await response.json().catch(() => null);
+                    event.source.postMessage({
+                        type: 'WEBHOOK_RESPONSE',
+                        requestId: requestId,
+                        success: response.ok,
+                        status: response.status,
+                        data: responseData
+                    }, event.origin);
+                } catch (error) {
+                    event.source.postMessage({
+                        type: 'WEBHOOK_RESPONSE',
+                        requestId: requestId,
+                        success: false,
+                        error: error.message
+                    }, event.origin);
+                }
+            }
+        });
+        if (window.parent !== window) {
+            window.parent.postMessage({ type: 'PROXY_READY' }, '*');
+        }
+    </script>
+</body>
+</html>
