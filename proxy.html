@@ -24,7 +24,6 @@
                 // Decode the request data
                 const requestData = JSON.parse(decodeURIComponent(atob(encodedData)));
                 const { url, method, headers, body, requestId } = requestData;
-                console.log('Proxy: Making request', requestId, { url, method });
 
                 // Make the fetch request
                 const response = await fetch(url, {
@@ -33,8 +32,6 @@
                     body: body ? JSON.stringify(body) : undefined
                 });
 
-                console.log('Proxy: Got response', requestId, { status: response.status, ok: response.ok });
-
                 // Try to parse JSON, but handle 204 No Content and other empty responses
                 let responseData = null;
                 if (response.status !== 204 && response.headers.get('content-length') !== '0') {
@@ -42,20 +39,16 @@
                 }
 
                 // Send response back to parent
-                const messageData = {
-                    type: 'WEBHOOK_RESPONSE',
-                    requestId: requestId,
-                    success: response.ok,
-                    status: response.status,
-                    data: responseData
-                };
-                console.log('Proxy: Sending postMessage to parent', messageData);
                 if (window.parent !== window) {
-                    window.parent.postMessage(messageData, '*');
-                    console.log('Proxy: postMessage sent');
+                    window.parent.postMessage({
+                        type: 'WEBHOOK_RESPONSE',
+                        requestId: requestId,
+                        success: response.ok,
+                        status: response.status,
+                        data: responseData
+                    }, '*');
                 }
             } catch (error) {
-                console.error('Proxy: Error', error);
                 // Send error back to parent
                 if (window.parent !== window) {
                     try {

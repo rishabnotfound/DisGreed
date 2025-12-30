@@ -426,17 +426,12 @@
 
         function setupProxy() {
             window.addEventListener('message', (event) => {
-                console.log('Received message:', event.data);
                 const { type, requestId, success, status, data, error } = event.data;
 
                 if (type === 'WEBHOOK_RESPONSE') {
-                    console.log('Webhook response received for request', requestId, { success, status, data, error });
                     const callback = proxyCallbacks[requestId];
                     if (callback) {
-                        console.log('Calling callback for request', requestId);
                         callback({ success, status, data, error });
-                    } else {
-                        console.warn('No callback found for request', requestId);
                     }
                 }
             });
@@ -485,10 +480,6 @@
                 proxyFrame.id = 'proxyFrame-' + requestId;
                 proxyFrame.style.display = 'none';
 
-                // Add load event listener to ensure iframe is ready
-                proxyFrame.onload = () => {
-                    console.log('Proxy iframe loaded for request', requestId);
-                };
 
                 document.body.appendChild(proxyFrame);
 
