@@ -32,7 +32,11 @@
                     body: body ? JSON.stringify(body) : undefined
                 });
 
-                const responseData = await response.json().catch(() => null);
+                // Try to parse JSON, but handle 204 No Content and other empty responses
+                let responseData = null;
+                if (response.status !== 204 && response.headers.get('content-length') !== '0') {
+                    responseData = await response.json().catch(() => null);
+                }
 
                 // Send response back to parent
                 if (window.parent !== window) {
@@ -47,13 +51,22 @@
             } catch (error) {
                 // Send error back to parent
                 if (window.parent !== window) {
-                    const requestData = JSON.parse(decodeURIComponent(atob(encodedData)));
-                    window.parent.postMessage({
-                        type: 'WEBHOOK_RESPONSE',
-                        requestId: requestData.requestId,
-                        success: false,
-                        error: error.message
-                    }, '*');
+                    try {
+                        const requestData = JSON.parse(decodeURIComponent(atob(encodedData)));
+                        window.parent.postMessage({
+                            type: 'WEBHOOK_RESPONSE',
+                            requestId: requestData.requestId,
+                            success: false,
+                            error: error.message
+                        }, '*');
+                    } catch (e) {
+                        window.parent.postMessage({
+                            type: 'WEBHOOK_RESPONSE',
+                            requestId: 0,
+                            success: false,
+                            error: 'Failed to parse request data'
+                        }, '*');
+                    }
                 }
             }
         })();
