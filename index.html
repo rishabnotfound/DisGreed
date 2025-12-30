@@ -401,16 +401,12 @@
         </div>
     </div>
 
-    <!-- Hidden Proxy Iframe -->
-    <iframe id="proxyFrame" src="proxy.html" style="display: none;"></iframe>
-
     <script>
         let webhooks = [];
         let activeWebhookId = null;
         let editingWebhookId = null;
         let emojiPicker = null;
         let deleteWebhookId = null;
-        let proxyReady = false;
         let proxyRequestId = 0;
         let proxyCallbacks = {};
 
@@ -432,10 +428,7 @@
             window.addEventListener('message', (event) => {
                 const { type, requestId, success, status, data, error } = event.data;
 
-                if (type === 'PROXY_READY') {
-                    proxyReady = true;
-                    console.log('Proxy is ready');
-                } else if (type === 'WEBHOOK_RESPONSE') {
+                if (type === 'WEBHOOK_RESPONSE') {
                     const callback = proxyCallbacks[requestId];
                     if (callback) {
                         callback({ success, status, data, error });
@@ -447,12 +440,8 @@
 
         function proxyFetch(url, options = {}) {
             return new Promise((resolve, reject) => {
-                if (!proxyReady) {
-                    // Fallback to direct fetch if proxy not ready
-                    return fetch(url, options).then(resolve).catch(reject);
-                }
-
                 const requestId = ++proxyRequestId;
+
                 proxyCallbacks[requestId] = (response) => {
                     if (response.success) {
                         resolve({
@@ -465,17 +454,28 @@
                     }
                 };
 
-                const proxyFrame = document.getElementById('proxyFrame');
-                proxyFrame.contentWindow.postMessage({
-                    type: 'WEBHOOK_REQUEST',
-                    requestId: requestId,
-                    data: {
-                        url: url,
-                        method: options.method || 'GET',
-                        headers: options.headers || {},
-                        body: options.body ? JSON.parse(options.body) : undefined
-                    }
-                }, '*');
+                // Encode request data as query parameter
+                const requestData = {
+                    url: url,
+                    method: options.method || 'GET',
+                    headers: options.headers || {},
+                    body: options.body ? JSON.parse(options.body) : undefined,
+                    requestId: requestId
+                };
+
+                const encodedData = btoa(encodeURIComponent(JSON.stringify(requestData)));
+
+                // Create or get proxy iframe
+                let proxyFrame = document.getElementById('proxyFrame');
+                if (!proxyFrame) {
+                    proxyFrame = document.createElement('iframe');
+                    proxyFrame.id = 'proxyFrame';
+                    proxyFrame.style.display = 'none';
+                    document.body.appendChild(proxyFrame);
+                }
+
+                // Load proxy with encoded data
+                proxyFrame.src = `proxy.html?data=${encodedData}`;
 
                 // Timeout after 30 seconds
                 setTimeout(() => {

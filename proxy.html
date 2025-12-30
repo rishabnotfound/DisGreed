@@ -7,37 +7,56 @@
 </head>
 <body>
     <script>
-        window.addEventListener('message', async (event) => {
-            const { type, data, requestId } = event.data;
-            if (type === 'WEBHOOK_REQUEST') {
-                try {
-                    const response = await fetch(data.url, {
-                        method: data.method || 'GET',
-                        headers: data.headers || {},
-                        body: data.body ? JSON.stringify(data.body) : undefined
-                    });
+        (async () => {
+            // Parse query parameters
+            const params = new URLSearchParams(window.location.search);
+            const encodedData = params.get('data');
 
-                    const responseData = await response.json().catch(() => null);
-                    event.source.postMessage({
+            if (!encodedData) {
+                // No request data, just notify parent we're ready
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'PROXY_READY' }, '*');
+                }
+                return;
+            }
+
+            try {
+                // Decode the request data
+                const requestData = JSON.parse(decodeURIComponent(atob(encodedData)));
+                const { url, method, headers, body, requestId } = requestData;
+
+                // Make the fetch request
+                const response = await fetch(url, {
+                    method: method || 'GET',
+                    headers: headers || {},
+                    body: body ? JSON.stringify(body) : undefined
+                });
+
+                const responseData = await response.json().catch(() => null);
+
+                // Send response back to parent
+                if (window.parent !== window) {
+                    window.parent.postMessage({
                         type: 'WEBHOOK_RESPONSE',
                         requestId: requestId,
                         success: response.ok,
                         status: response.status,
                         data: responseData
-                    }, event.origin);
-                } catch (error) {
-                    event.source.postMessage({
+                    }, '*');
+                }
+            } catch (error) {
+                // Send error back to parent
+                if (window.parent !== window) {
+                    const requestData = JSON.parse(decodeURIComponent(atob(encodedData)));
+                    window.parent.postMessage({
                         type: 'WEBHOOK_RESPONSE',
-                        requestId: requestId,
+                        requestId: requestData.requestId,
                         success: false,
                         error: error.message
-                    }, event.origin);
+                    }, '*');
                 }
             }
-        });
-        if (window.parent !== window) {
-            window.parent.postMessage({ type: 'PROXY_READY' }, '*');
-        }
+        })();
     </script>
 </body>
 </html>
